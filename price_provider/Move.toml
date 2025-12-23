@@ -14,3 +14,11 @@ git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
 rev = "framework/mainnet"
 override = true
+
+[dependencies.move_stl]
+git = "https://github.com/luck-28/MAGMA-move-stl.git"
+rev = "main"
+
+[dependencies.integer_mate]
+git = "https://github.com/luck-28/MAGMA-integer-mate.git"
+rev = "main"
