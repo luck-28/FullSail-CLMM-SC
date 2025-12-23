@@ -15,13 +15,13 @@ subdir = "crates/sui-framework/packages/sui-framework"
 rev = "ad937889f2f99bc666b05aaeadccb0d3d7d1f863"
 override = true
 
-[dependencies.MoveSTL]
-git = "https://github.com/CetusProtocol/move-stl.git"
-rev = "mainnet-v1.3.0"
+# Keep the REAL package names from Cetus
+IntegerMate = { git = "https://github.com/CetusProtocol/integer-mate.git", rev = "mainnet-v1.3.0" }
+MoveSTL = { git = "https://github.com/CetusProtocol/move-stl.git", rev = "mainnet-v1.3.0" }
 
-[dependencies.integer_mate]
-git = "https://github.com/CetusProtocol/integer-mate.git"
-rev = "mainnet-v1.3.0"
+# Add ALIASES for Full Sail's lowercase imports
+integer_mate = { git = "https://github.com/CetusProtocol/integer-mate.git", rev = "mainnet-v1.3.0" }
+move_stl = { git = "https://github.com/CetusProtocol/move-stl.git", rev = "mainnet-v1.3.0" }
 
 [dependencies.price_provider]
 local = "../price_provider"
