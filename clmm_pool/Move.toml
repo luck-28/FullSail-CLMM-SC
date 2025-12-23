@@ -19,7 +19,7 @@ override = true
 git = "https://github.com/CetusProtocol/move-stl.git"
 rev = "mainnet-v1.3.0"
 
-[dependencies.integer_mate]
+[dependencies.IntegerMate]
 git = "https://github.com/CetusProtocol/integer-mate.git"
 rev = "mainnet-v1.3.0"
 
