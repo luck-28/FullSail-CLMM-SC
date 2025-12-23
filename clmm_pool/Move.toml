@@ -12,7 +12,7 @@ clmm_pool = "0x0"
 [dependencies.Sui]
 git = "https://github.com/MystenLabs/sui.git"
 subdir = "crates/sui-framework/packages/sui-framework"
-rev = "framework/mainnet"
+rev = "ad937889f2f99bc666b05aaeadccb0d3d7d1f863"
 override = true
 
 [dependencies.move_stl]
