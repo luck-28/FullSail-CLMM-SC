@@ -1777,24 +1777,7 @@ module clmm_pool::pool {
     ///
     /// # Aborts
     /// * If the gauge cap is not valid for the pool (error code: EInvalidGaugeCap)
-    fun check_gauge_cap<CoinTypeA, CoinTypeB>(
-        pool: &Pool<CoinTypeA, CoinTypeB>, 
-        gauge_cap: &gauge_cap::gauge_cap::GaugeCap
-    ) {
-        let is_valid = if (gauge_cap::gauge_cap::get_pool_id(gauge_cap) == sui::object::id<Pool<CoinTypeA, CoinTypeB>>(pool)) {
-            let gauger_id = &pool.fullsail_distribution_gauger_id;
-            let has_valid_gauge = if (std::option::is_some<sui::object::ID>(gauger_id)) {
-                let cap_gauge_id = gauge_cap::gauge_cap::get_gauge_id(gauge_cap);
-                std::option::borrow<sui::object::ID>(gauger_id) == &cap_gauge_id
-            } else {
-                false
-            };
-            has_valid_gauge
-        } else {
-            false
-        };
-        assert!(is_valid, EInvalidGaugeCap);
-    }
+   
 
     /// Safely subtracts a value from an amount, ensuring the result is non-negative.
     /// This is a helper function used in swap calculations to handle amount subtractions
@@ -1917,39 +1900,6 @@ module clmm_pool::pool {
     /// # Aborts
     /// * If the pool is paused (error code: EPoolPaused)
     /// * If the gauge cap is invalid for the pool
-    public fun collect_fullsail_distribution_gauger_fees<CoinTypeA, CoinTypeB>(
-        pool: &mut Pool<CoinTypeA, CoinTypeB>,
-        gauge_cap: &gauge_cap::gauge_cap::GaugeCap
-    ): (sui::balance::Balance<CoinTypeA>, sui::balance::Balance<CoinTypeB>) {
-        assert!(!pool.is_pause, EPoolPaused);
-        check_gauge_cap<CoinTypeA, CoinTypeB>(pool, gauge_cap);
-        let mut balance_a = sui::balance::zero<CoinTypeA>();
-        let mut balance_b = sui::balance::zero<CoinTypeB>();
-        
-        if (pool.fullsail_distribution_gauger_fee.coin_a > 0) {
-            sui::balance::join<CoinTypeA>(
-                &mut balance_a,
-                sui::balance::split<CoinTypeA>(&mut pool.coin_a, pool.fullsail_distribution_gauger_fee.coin_a)
-            );
-            pool.fullsail_distribution_gauger_fee.coin_a = 0;
-        };
-
-        if (pool.fullsail_distribution_gauger_fee.coin_b > 0) {
-            sui::balance::join<CoinTypeB>(
-                &mut balance_b,
-                sui::balance::split<CoinTypeB>(&mut pool.coin_b, pool.fullsail_distribution_gauger_fee.coin_b)
-            );
-            pool.fullsail_distribution_gauger_fee.coin_b = 0;
-        };
-
-        let event = CollectGaugeFeeEvent {
-            pool: sui::object::id<Pool<CoinTypeA, CoinTypeB>>(pool),
-            amount_a: sui::balance::value<CoinTypeA>(&balance_a),
-            amount_b: sui::balance::value<CoinTypeB>(&balance_b),
-        };
-        sui::event::emit<CollectGaugeFeeEvent>(event);
-        (balance_a, balance_b)
-    }
     
     /// Collects accumulated protocol fees from the pool.
     /// This function handles protocol fee collection, including:
@@ -2779,26 +2729,7 @@ module clmm_pool::pool {
     ///
     /// # Aborts
     /// * If the pool ID in the gauge capability does not match the pool's ID (error code: EInvalidPoolOrPartnerId)
-    public fun init_fullsail_distribution_gauge<CoinTypeA, CoinTypeB>(
-        pool: &mut Pool<CoinTypeA, CoinTypeB>,
-        gauge_cap: &gauge_cap::gauge_cap::GaugeCap
-    ) {
-        assert!(!pool.is_pause, EPoolPaused);
-        assert!(
-            gauge_cap::gauge_cap::get_pool_id(gauge_cap) == sui::object::id<Pool<CoinTypeA, CoinTypeB>>(pool),
-            EInvalidPoolOrPartnerId
-        );
-        std::option::fill<sui::object::ID>(
-            &mut pool.fullsail_distribution_gauger_id,
-            gauge_cap::gauge_cap::get_gauge_id(gauge_cap)
-        );
-
-        let event = InitFullsailDistributionGaugeEvent {
-            pool_id: sui::object::id<Pool<CoinTypeA, CoinTypeB>>(pool),
-            gauge_id: gauge_cap::gauge_cap::get_gauge_id(gauge_cap),
-        };
-        sui::event::emit<InitFullsailDistributionGaugeEvent>(event);
-    }
+   
 
     /// Initializes a new rewarder for the pool.
     /// This function adds a new reward token type to the pool's reward system.
@@ -3256,34 +3187,7 @@ module clmm_pool::pool {
     /// * If the pool is paused (error code: EPoolPaused)
     /// * If the liquidity amount is zero (error code: EZeroLiquidity)
     /// * If the gauge capability verification fails
-    public fun stake_in_fullsail_distribution<CoinTypeA, CoinTypeB>(
-        pool: &mut Pool<CoinTypeA, CoinTypeB>,
-        gauge_cap: &gauge_cap::gauge_cap::GaugeCap, 
-        position: &clmm_pool::position::Position,
-        clock: &sui::clock::Clock
-    ) {
-        assert!(!pool.is_pause, EPoolPaused);
-
-        let liquidity = position.liquidity();
-        assert!(liquidity != 0, EZeroLiquidity);
-        check_gauge_cap<CoinTypeA, CoinTypeB>(pool, gauge_cap);
-
-        let position_id = sui::object::id<clmm_pool::position::Position>(position);
-        clmm_pool::position::validate_position_exists(&pool.position_manager, position_id);
-        assert!(!clmm_pool::position::is_position_staked(&pool.position_manager, position_id), EStakePositionAlreadyStaked);
-
-        let (tick_lower, tick_upper) = position.tick_range();
-        update_fullsail_distribution_internal<CoinTypeA, CoinTypeB>(
-            pool,
-            integer_mate::i128::from(liquidity),
-            tick_lower,
-            tick_upper,
-            clock
-        );
-
-        clmm_pool::position::mark_position_staked(&mut pool.position_manager, position_id, true);
-    }
-
+   
     /// Returns the amount of tokens sent in the swap step.
     /// This function extracts the amount_in field from the SwapStepResult,
     /// representing the actual amount of tokens sent in the swap operation.
@@ -3559,33 +3463,7 @@ module clmm_pool::pool {
     /// # Aborts
     /// * If the pool is paused (error code: EPoolPaused)
     /// * If the gauge capability verification fails
-    public fun sync_fullsail_distribution_reward<CoinTypeA, CoinTypeB>(
-        pool: &mut Pool<CoinTypeA, CoinTypeB>,
-        gauge_cap: &gauge_cap::gauge_cap::GaugeCap,
-        distribution_rate: u128,
-        distribution_reserve: u64,
-        period_finish: u64,
-        clock: &sui::clock::Clock
-    ) {
-        assert!(!pool.is_pause, EPoolPaused);
-        check_gauge_cap<CoinTypeA, CoinTypeB>(pool, gauge_cap);
-        assert!(pool.fullsail_distribution_last_updated == clock.timestamp_ms() / 1000, EInvalidSyncFullsailDistributionTime);
-        pool.fullsail_distribution_rate = distribution_rate;
-        pool.fullsail_distribution_reserve = distribution_reserve;
-        pool.fullsail_distribution_period_finish = period_finish;
-        pool.fullsail_distribution_rollover = 0;
-        
-        let event = SyncFullsailDistributionRewardEvent {
-            pool_id: sui::object::id<Pool<CoinTypeA, CoinTypeB>>(pool),
-            gauge_id: gauge_cap::gauge_cap::get_gauge_id(gauge_cap),
-            distribution_rate: pool.fullsail_distribution_rate,
-            distribution_reserve: pool.fullsail_distribution_reserve,
-            period_finish: pool.fullsail_distribution_period_finish,
-            rollover: pool.fullsail_distribution_rollover
-        };
-        sui::event::emit<SyncFullsailDistributionRewardEvent>(event);
-    }
-
+   
     /// Returns a reference to the pool's tick manager.
     /// The tick manager handles the initialization, tracking, and management
     /// of price ticks within the pool.
@@ -3651,32 +3529,6 @@ module clmm_pool::pool {
     /// # Aborts
     /// * If the pool is paused (error code: EPoolPaused)
     /// * If gauge capability verification fails
-    public fun unstake_from_fullsail_distribution<CoinTypeA, CoinTypeB>(
-        pool: &mut Pool<CoinTypeA, CoinTypeB>,
-        gauge_cap: &gauge_cap::gauge_cap::GaugeCap,
-        position: &clmm_pool::position::Position,
-        clock: &sui::clock::Clock
-    ) {
-        assert!(!pool.is_pause, EPoolPaused);
-        check_gauge_cap<CoinTypeA, CoinTypeB>(pool, gauge_cap);
-        let position_id = sui::object::id<clmm_pool::position::Position>(position);
-        clmm_pool::position::validate_position_exists(&pool.position_manager, position_id);
-        assert!(clmm_pool::position::is_position_staked(&pool.position_manager, position_id), EUnstakePositionNotStaked);
-
-        let liquidity = position.liquidity();
-        if (liquidity > 0) {
-            let (tick_lower, tick_upper) = position.tick_range();
-            update_fullsail_distribution_internal<CoinTypeA, CoinTypeB>(
-                pool,
-                integer_mate::i128::neg(integer_mate::i128::from(liquidity)),
-                tick_lower,
-                tick_upper,
-                clock
-            );
-        };
-
-        clmm_pool::position::mark_position_staked(&mut pool.position_manager, position_id, false);
-    }
     
     /// Updates the global fee growth for the pool, distributing fees among all liquidity positions.
     /// Fees are distributed proportionally to the amount of liquidity in the pool.
@@ -3762,16 +3614,7 @@ module clmm_pool::pool {
     /// # Aborts
     /// * If the pool is paused (error code: EPoolPaused)
     /// * If gauge capability verification fails
-    public fun update_fullsail_distribution_growth_global<CoinTypeA, CoinTypeB>(
-        pool: &mut Pool<CoinTypeA, CoinTypeB>,
-        gauge_cap: &gauge_cap::gauge_cap::GaugeCap,
-        clock: &sui::clock::Clock
-    ) {
-        assert!(!pool.is_pause, EPoolPaused);
-        check_gauge_cap<CoinTypeA, CoinTypeB>(pool, gauge_cap);
-        update_fullsail_distribution_growth_global_internal<CoinTypeA, CoinTypeB>(pool, clock);
-    }
-
+   
     /// Updates the global growth of fullsail distribution rewards based on the time elapsed since last update.
     /// Calculates and distributes rewards to all staked positions.
     /// 
